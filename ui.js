@@ -4,8 +4,8 @@ let storyList = null;
 // global currentUser variable
 let currentUser = null;
 
-// global var that will hold a jQuery object of the current article list the user is looking at
-let $currentView = null;
+// global var that will hold a jQuery object of the current article list the user is looking at. Initialize to all articles
+let $currentView = $("#all-articles-list");
 
 $(async function() {
   // cache some selectors we'll be using quite a bit
@@ -79,11 +79,11 @@ $(async function() {
     //Add story to API and get a story object back
     const storyObj = await storyList.addStory(currentUser, newStory);
 
-    //Add story to stories list based on request return
-    $allStoriesList.prepend(generateStoryHTML(storyObj));
-
     //Add story to User's own stories
     currentUser.addOwnStory(storyObj);
+
+    //Add story to stories list based on request return
+    $allStoriesList.prepend(generateStoryHTML(storyObj));
     
     //Reset and close the form
     $submitForm.trigger("reset");
@@ -126,14 +126,17 @@ $(async function() {
    * Event handler for navigation to favorites list
    */
 
-   $('#favorites').on('click', async function() {
-    //Clear current view and show the loading view
-    showLoading($favoritedArticles);
+   $('#favorites').on('click', function() {
+    //Generate list of favorite articles and populate the favorite articles element
+    generateUserList(currentUser.favorites, $favoritedArticles);
+   })
 
-    //Set the current view to favorited articles
-    $currentView = $favoritedArticles;
-
-
+   /**
+    * Event handler for navigation to your own stories list
+    */
+   $('#my-stories').on('click', function() {
+     //Generate list of own articles and populate the my articles element
+     generateUserList(currentUser.ownStories, $ownStories);
    })
 
   /**
@@ -156,6 +159,20 @@ $(async function() {
 
     //Toggle star style from solid to regular, and toggle the favorited class
     $(evt.target).toggleClass(['fas', 'far', 'favorited'])
+  }
+
+  /**
+   * Event handler for the delete button, which deletes the story from the list as well as the API
+   */
+  async function deleteOwnStory(evt) {
+    //Get the story ID from the parent element of the delete button
+    const storyId = $(evt.target).parent().attr('id');
+
+    //Pass the story ID to the delete story function of the story list
+    await storyList.deleteStory(currentUser, storyId);
+
+    //Re-generate the story list after deleting the story
+    await generateStories();
   }
 
   /**
@@ -193,10 +210,7 @@ $(async function() {
     $createAccountForm.trigger("reset");
 
     // show the stories
-    $allStoriesList.show();
-
-    //Show the favorite and delete buttons
-    showFavoriteButtons();
+    generateStories();
 
     // update the navigation bar
     showNavForLoggedInUser();
@@ -208,11 +222,11 @@ $(async function() {
    */
 
   async function generateStories() {
-    //Set current view to all articles list
-    $currentView = $allStoriesList
-
     // Show loading view in the all stories list
     showLoading($allStoriesList);
+
+    //Set current view to all articles list
+    $currentView = $allStoriesList
 
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
@@ -229,6 +243,26 @@ $(async function() {
     }
   }
 
+  function generateUserList(list, $target) {
+    //Clear current view and show the loading view in the targeted list
+    showLoading($target);
+
+    //Set global storylist to a new storyList from the list passed
+    storyList = new StoryList(list);
+
+    //Set the current view to the target view
+    $currentView = $target;
+
+    //Clear loading
+    hideLoading();
+
+    // loop through all of our stories and generate HTML for them and append them to the target article list
+    for (let story of storyList.stories) {
+      const result = generateStoryHTML(story);
+      $target.append(result);
+    }
+  }
+
   /**
    * A function to render HTML for an individual Story instance
    */
@@ -239,7 +273,6 @@ $(async function() {
     // render story markup
     const $storyMarkup = $(`
       <li id="${story.storyId}">
-        <i class="far fa-star favorite hidden"></i>
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
@@ -249,23 +282,37 @@ $(async function() {
       </li>
     `);
 
-    //Give this LI an event listener for users to favorite the story
-    $storyMarkup.on('click', '.favorite', toggleFavorite);
+    //If the user is logged in, add the user buttons
+    if (currentUser) {
+      addUserButtons($storyMarkup, story);
+    }
 
+    return $storyMarkup;
+  }
+
+  function addUserButtons($storyMarkup, story) {
+    //First create the favorite button with an event listener
+    const $favButton = $('<i class="far fa-star star favorite"></i>')
+                        .on('click', toggleFavorite);
 
     //Add the favorited class and switch to a solid star if the ID of this story matches one in the user's favorites
     for (let favorite of currentUser.favorites) {
       if (favorite.storyId === story.storyId) {
-        $storyMarkup.children('.favorite').toggleClass(['favorited', 'fas', 'far']);
+        $favButton.toggleClass(['favorited', 'fas', 'far']);
+      }
+    };
+
+    //Append favorite buttton to all LIs
+    $storyMarkup.prepend($favButton);
+
+    //If this is one of the user's own stories, add a delete button
+    for (let ownStory of currentUser.ownStories) {
+      if(ownStory.storyId === story.storyId) {
+        $delete = $('<i class="far fa-trash-alt trash-can"></i>')
+                  .on('click', deleteOwnStory);
+        $storyMarkup.prepend($delete)
       }
     }
-
-    //Show the favorite button if the user is logged in
-    if (currentUser) {
-      showFavoriteButtons();
-    }
-
-    return $storyMarkup;
   }
 
   /* hide all elements in elementsArr */
@@ -289,19 +336,15 @@ $(async function() {
     $navWelcome.show();
   }
 
-  //Toggles on the favorite button when the user is logged in 
-  function showFavoriteButtons() {
-    $('.favorite').show();
-  }
-
   /**
    * Clears the current view and displays a loading message in the next one while it populates.
    * The passed argument should be a jQuery object representing the article list we want 
    * to show next
    */
   function showLoading($loadingView) {
-    //Empty the current view
+    //Hide and empty the current view
     $currentView.empty();
+    $currentView.hide();
 
     //Show the loading view and append a loading message to it
     $loadingView.show();
