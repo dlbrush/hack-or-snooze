@@ -210,6 +210,10 @@ form > hr {
   display: none;
 }
 
+.login-error {
+  color: crimson;
+}
+
 
 /** responsive queries for tightening things up for mobile. */
 

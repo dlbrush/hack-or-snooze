@@ -30,16 +30,29 @@ $(async function() {
   $loginForm.on("submit", async function(evt) {
     evt.preventDefault(); // no page-refresh on submit
 
+    //Remove error message if there was one
+    $('.login-error').remove();
+
     // grab the username and password
     const username = $("#login-username").val();
     const password = $("#login-password").val();
 
-    // call the login static method to build a user instance
-    const userInstance = await User.login(username, password);
-    // set the global user to the user instance
-    currentUser = userInstance;
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    try {
+
+      // call the login static method to build a user instance
+      const userInstance = await User.login(username, password);
+      // set the global user to the user instance
+      currentUser = userInstance;
+
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+
+    } catch(error) {
+
+      //Add an error message to the form if the API call above fails
+      $loginForm.append(`<p class="login-error">${error.response.data.error.message}</p>`);
+
+    }
   });
 
   /**
@@ -50,16 +63,29 @@ $(async function() {
   $createAccountForm.on("submit", async function(evt) {
     evt.preventDefault(); // no page refresh
 
+    //Remove error message if there was one
+    $('.login-error').remove();
+
     // grab the required fields
     let name = $("#create-account-name").val();
     let username = $("#create-account-username").val();
     let password = $("#create-account-password").val();
 
-    // call the create method, which calls the API and then builds a new user instance
-    const newUser = await User.create(username, password, name);
-    currentUser = newUser;
-    syncCurrentUserToLocalStorage();
-    loginAndSubmitForm();
+    try {
+
+      // call the create method, which calls the API and then builds a new user instance
+      const newUser = await User.create(username, password, name);
+      currentUser = newUser;
+      syncCurrentUserToLocalStorage();
+      loginAndSubmitForm();
+
+    } catch (error) {
+
+      //Add an error message if the API call above fails
+      $createAccountForm.append(`<p class="login-error">${error.response.data.error.message}</p>`);
+
+    }
+    
   });
 
   /**
@@ -80,7 +106,7 @@ $(async function() {
     const storyObj = await storyList.addStory(currentUser, newStory);
 
     //Add story to User's own stories
-    currentUser.addOwnStory(storyObj);
+    currentUser.ownStories.push(storyObj);
 
     //Add story to stories list based on request return
     $allStoriesList.prepend(generateStoryHTML(storyObj));
@@ -110,6 +136,8 @@ $(async function() {
     $loginForm.slideToggle();
     $createAccountForm.slideToggle();
     $allStoriesList.toggle();
+    //Remove the error message if there was one
+    $('.login-error').remove();
   });
 
   /**
@@ -256,7 +284,7 @@ $(async function() {
     //Clear loading
     hideLoading();
 
-    // loop through all of our stories and generate HTML for them and append them to the target article list
+    // loop through all of our stories and generate HTML for them. Append them in the order they were added to the user's list
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
       $target.append(result);
