@@ -30,13 +30,6 @@ a:hover {
   text-decoration: underline;
 }
 
-
-.hidden {
-  display: none;
-}
-
-
-
 nav {
   display: flex;
   background-color: #ff6600;
@@ -153,6 +146,10 @@ form > hr {
   cursor: pointer;
 }
 
+.favorited {
+  color: gold;
+}
+
 .trash-can:hover {
   color: crimson;
 }
@@ -178,13 +175,11 @@ form > hr {
 
 .article-author {
   margin-top: 5px;
-  margin-left: 25px;
 }
 
 .article-username {
   display: block;
   margin-top: 5px;
-  margin-left: 25px;
 }
 
 #favorited-articles,
@@ -209,6 +204,10 @@ form > hr {
 
 #user-profile > * {
   margin: 10px 0;
+}
+
+.hidden {
+  display: none;
 }
 
 
