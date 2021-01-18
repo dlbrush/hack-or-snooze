@@ -177,8 +177,9 @@ $(async function() {
    * Add a story to the user's favorites when it has not been favorited yet, and remove it if it has already been favorited
    */
   async function toggleFavorite(evt) {
+  //Story ID passed to the delete function is located in the ID of the parent element
+  //Pass that ID to either the delete or add favorite class
     if ($(evt.target).hasClass('favorited')) {
-      //Story ID passed to the delete function is located in the ID of the parent element
       await currentUser.deleteFavorite($(evt.target).parent().attr('id'));
     } else {
       await currentUser.addFavorite($(evt.target).parent().attr('id'));
@@ -257,7 +258,7 @@ $(async function() {
 
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
-    
+
     // update our global variable
     storyList = storyListInstance;
 
