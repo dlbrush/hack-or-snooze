@@ -108,13 +108,30 @@ $(async function() {
     //Add story to User's own stories
     currentUser.ownStories.push(storyObj);
 
-    //Add story to stories list based on request return
-    $allStoriesList.prepend(generateStoryHTML(storyObj));
+    //Use the showNewStory method to determine where to place the story on-screen
+    showNewStory(storyObj);
     
     //Reset and close the form
     $submitForm.trigger("reset");
     $submitForm.slideToggle();
   });
+
+  function showNewStory(storyObj) {
+    //Show the new story differently depending on the current list view
+    switch ($currentView) {
+      case $allStoriesList:
+        //Add the story to the top of the all stories list, since it's the newest story
+        $currentView.prepend(generateStoryHTML(storyObj));
+        break;
+      case $ownStories:
+        //Add the story to the bottom of the list of your own stories, since these appear in order created from oldest to newest
+        $currentView.append(generateStoryHTML(storyObj));
+        break;
+      case $favoritedArticles:
+        //Do nothing if looking at the favorites list, since the user can't have favorited the story yet.
+        break;
+    }
+  }
 
   /**
    * Log Out Functionality
@@ -146,7 +163,7 @@ $(async function() {
 
   $("body").on("click", "#nav-all", async function() {
     hideElements();
-    await generateStories();
+    await generateStories($allStoriesList);
     $allStoriesList.show();
   });
 
@@ -155,7 +172,7 @@ $(async function() {
    */
    $('#favorites').on('click', function() {
     //Generate list of favorite articles and populate the favorite articles element
-    generateUserList(currentUser.favorites, $favoritedArticles);
+    generateStories($favoritedArticles, currentUser.favorites);
    })
 
    /**
@@ -163,7 +180,7 @@ $(async function() {
     */
    $('#my-stories').on('click', function() {
      //Generate list of own articles and populate the my articles element
-     generateUserList(currentUser.ownStories, $ownStories);
+     generateStories($ownStories, currentUser.ownStories);
    })
 
   /**
@@ -188,10 +205,9 @@ $(async function() {
     //Toggle star style from solid to regular, and toggle the favorited class
     $(evt.target).toggleClass(['fas', 'far', 'favorited'])
 
-    //If we're looking at the list of favorites, remove the article from the page and reload the list.
+    //If we're looking at the list of favorites, reload the list.
     if ($currentView === $favoritedArticles) {
-      $(evt.target).parent().remove();
-      generateUserList(currentUser.favorites, $favoritedArticles)
+      generateStories($favoritedArticles, currentUser.favorites)
     }
   }
 
@@ -231,7 +247,7 @@ $(async function() {
     //  to get an instance of User with the right details
     //  this is designed to run once, on page load
     currentUser = await User.getLoggedInUser(token, username);
-    await generateStories();
+    await generateStories($allStoriesList);
 
     if (currentUser) {
       showNavForLoggedInUser();
@@ -252,26 +268,33 @@ $(async function() {
     $createAccountForm.trigger("reset");
 
     // show the stories
-    generateStories();
+    generateStories($allStoriesList);
 
     // update the navigation bar
     showNavForLoggedInUser();
   }
 
   /**
-   * A rendering function to call the StoryList.getStories static method,
+   * A rendering function to show stories for the current view.
+   *  If we're looking at all articles, call the StoryList.getStories static method,
    *  which will generate a storyListInstance. Then render it.
+   *  Otherwise, use the passed list from the user to create a new story list.
    */
 
-  async function generateStories() {
-    // Show loading view in the all stories list
-    showLoading($allStoriesList);
+  async function generateStories($target, list) {
+    // Show loading view in the targeted list
+    showLoading($target);
 
-    //Set current view to all articles list
-    $currentView = $allStoriesList
+    //Set current view to the target list
+    $currentView = $target;
 
-    // get an instance of StoryList
-    const storyListInstance = await StoryList.getStories();
+    // If the target view is all stories, then get story list from API. Otherwise set the list to the passed list.
+    let storyListInstance = null;
+    if ($target === $allStoriesList) {
+      storyListInstance = await StoryList.getStories();
+    }  else {
+      storyListInstance = new StoryList(list);
+    }
 
     // update our global variable
     storyList = storyListInstance;
@@ -282,31 +305,11 @@ $(async function() {
     // loop through all of our stories and generate HTML for them
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
-      $allStoriesList.append(result);
-    }
-  }
-
-  function generateUserList(list, $target) {
-    //Clear current view and show the loading view in the targeted list
-    showLoading($target);
-
-    //Set global storylist to a new storyList from the list passed
-    storyList = new StoryList(list);
-
-    //Set the current view to the target view
-    $currentView = $target;
-
-    //Clear loading
-    hideLoading();
-
-    // loop through all of our stories and generate HTML for them. Append them in the order they were added to the user's list
-    for (let story of storyList.stories) {
-      const result = generateStoryHTML(story);
       $target.append(result);
     }
 
     //Append a message if there were no stories added
-    if (list.length === 0) {
+    if (storyList.stories.length === 0) {
       $target.append(`<p>No stories to show.</p>`)
     }
   }
