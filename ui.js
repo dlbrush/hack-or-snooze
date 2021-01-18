@@ -136,7 +136,7 @@ $(async function() {
     $loginForm.slideToggle();
     $createAccountForm.slideToggle();
     $allStoriesList.toggle();
-    //Remove the error message if there was one
+    //Remove error message if there was one
     $('.login-error').remove();
   });
 
@@ -153,7 +153,6 @@ $(async function() {
   /**
    * Event handler for navigation to favorites list
    */
-
    $('#favorites').on('click', function() {
     //Generate list of favorite articles and populate the favorite articles element
     generateUserList(currentUser.favorites, $favoritedArticles);
@@ -258,6 +257,7 @@ $(async function() {
 
     // get an instance of StoryList
     const storyListInstance = await StoryList.getStories();
+    
     // update our global variable
     storyList = storyListInstance;
 
