@@ -187,6 +187,12 @@ $(async function() {
 
     //Toggle star style from solid to regular, and toggle the favorited class
     $(evt.target).toggleClass(['fas', 'far', 'favorited'])
+
+    //If we're looking at the list of favorites, remove the article from the page and reload the list.
+    if ($currentView === $favoritedArticles) {
+      $(evt.target).parent().remove();
+      generateUserList(currentUser.favorites, $favoritedArticles)
+    }
   }
 
   /**
@@ -199,8 +205,16 @@ $(async function() {
     //Pass the story ID to the delete story function of the story list
     await storyList.deleteStory(currentUser, storyId);
 
-    //Re-generate the story list after deleting the story
-    await generateStories();
+    //Remove the story from the user's own story list
+    for (let story of currentUser.ownStories) {
+      //If the story IDs match the deleted story, remove the story from the ownStories array
+      if (story.storyId === storyId) {
+        currentUser.ownStories.splice(currentUser.ownStories.indexOf(story))
+      }
+    }
+
+    //Remove the element for the deleted item from the page
+    $(evt.target).parent().remove();
   }
 
   /**
@@ -289,6 +303,11 @@ $(async function() {
     for (let story of storyList.stories) {
       const result = generateStoryHTML(story);
       $target.append(result);
+    }
+
+    //Append a message if there were no stories added
+    if (list.length === 0) {
+      $target.append(`<p>No stories to show.</p>`)
     }
   }
 
