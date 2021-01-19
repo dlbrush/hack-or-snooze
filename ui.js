@@ -359,7 +359,7 @@ $(async function() {
     //If this is one of the user's own stories, add a delete button
     for (let ownStory of currentUser.ownStories) {
       if(ownStory.storyId === story.storyId) {
-        $delete = $('<i class="far fa-trash-alt trash-can"></i>')
+        const $delete = $('<i class="far fa-trash-alt trash-can"></i>')
                   .on('click', deleteOwnStory);
         $storyMarkup.prepend($delete)
       }
