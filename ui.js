@@ -1,12 +1,3 @@
-// global storyList variable
-let storyList = null;
-
-// global currentUser variable
-let currentUser = null;
-
-// global var that will hold a jQuery object of the current article list the user is looking at. Initialize to all articles
-let $currentView = $("#all-articles-list");
-
 $(async function() {
   // cache some selectors we'll be using quite a bit
   const $allStoriesList = $("#all-articles-list");
@@ -19,6 +10,15 @@ $(async function() {
   const $navLogin = $("#nav-login");
   const $navLogOut = $("#nav-logout");
   const $navWelcome = $("#nav-welcome");
+
+  // global storyList variable
+let storyList = null;
+
+// global currentUser variable
+let currentUser = null;
+
+// global var that will hold a jQuery object of the current article list the user is looking at. Initialize to all articles
+let $currentView = $("#all-articles-list");
 
   await checkIfLoggedIn();
 
@@ -225,7 +225,7 @@ $(async function() {
     for (let story of currentUser.ownStories) {
       //If the story IDs match the deleted story, remove the story from the ownStories array
       if (story.storyId === storyId) {
-        currentUser.ownStories.splice(currentUser.ownStories.indexOf(story))
+        currentUser.ownStories.splice(currentUser.ownStories.indexOf(story), 1)
       }
     }
 
